@@ -1,0 +1,28 @@
+# Podman Quadlet unit: systemd runs the CamVault container as a service.
+# install-rhel.sh copies this to /etc/containers/systemd/camvault.container
+# (with the paths below filled in) and starts it as "camvault.service".
+
+[Unit]
+Description=CamVault NVR (camera recorder and web viewer)
+Wants=network-online.target
+After=network-online.target
+
+[Container]
+ContainerName=camvault
+Image=localhost/camvault:latest
+EnvironmentFile=/etc/camvault/camvault.env
+PublishPort=@PORT@:8080
+# :Z lets the container read and write these folders with SELinux enforcing
+Volume=@DATA_DIR@:/data:Z
+Volume=@RECORDINGS_DIR@:/data/recordings:Z
+# Give ffmpeg time to finish writing the current recordings on stop
+StopTimeout=20
+# Uncomment for an analog CCTV capture card / USB video grabber:
+#AddDevice=/dev/video0
+
+[Service]
+Restart=always
+TimeoutStartSec=120
+
+[Install]
+WantedBy=multi-user.target

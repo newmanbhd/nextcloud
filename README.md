@@ -20,6 +20,8 @@ A self-hosted web app that connects to your CCTV and IP cameras, records their v
 
 The server runs one `ffmpeg` process per camera. It opens a single connection to the camera and writes two outputs at once: segmented MP4 recordings and a short rolling HLS stream for the live view. For H.264 cameras the video is **copied, not re-encoded**, so CPU usage stays very low, even on a Raspberry Pi or a small NAS.
 
+> **Red Hat / Rocky / AlmaLinux server?** Follow the step-by-step guide in [INSTALL-RHEL.md](INSTALL-RHEL.md). It uses Podman, which RHEL includes instead of Docker.
+
 ## Quick start (Docker)
 
 ```bash

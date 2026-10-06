@@ -1,7 +1,7 @@
-FROM node:22-bookworm-slim
+FROM docker.io/library/node:22-bookworm-slim
 
 RUN apt-get update \
- && apt-get install -y --no-install-recommends ffmpeg tini \
+ && apt-get install -y --no-install-recommends ffmpeg tini tzdata \
  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
