@@ -1,0 +1,21 @@
+services:
+  nvr:
+    build: .
+    container_name: camvault-nvr
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "8080:8080"
+    volumes:
+      # Camera config, session secret and live-stream buffers
+      - ./data:/data
+      # Where the video files are stored. Point this at a large disk, e.g. /mnt/cctv
+      - ${RECORDINGS_PATH:-./data/recordings}:/data/recordings
+    # Gracefully stop ffmpeg so the last recording of each camera is finalised
+    stop_grace_period: 20s
+    # Uncomment to use an analog CCTV capture card / USB grabber
+    # devices:
+    #   - /dev/video0:/dev/video0
+    # Uncomment to keep live-stream buffers in RAM instead of on disk
+    # tmpfs:
+    #   - /data/live

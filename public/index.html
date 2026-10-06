@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CamVault NVR</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <section id="login-view" class="login" hidden>
+    <form id="login-form" class="card">
+      <h1>CamVault</h1>
+      <p class="muted">Sign in to view your cameras</p>
+      <label>Username <input name="username" autocomplete="username" required></label>
+      <label>Password <input name="password" type="password" autocomplete="current-password" required></label>
+      <p id="login-error" class="error" role="alert"></p>
+      <button type="submit" class="primary">Sign in</button>
+    </form>
+  </section>
+
+  <div id="app" hidden>
+    <header class="topbar">
+      <span class="brand">CamVault</span>
+      <nav>
+        <a href="#/live" data-view="live">Live</a>
+        <a href="#/recordings" data-view="recordings">Recordings</a>
+        <a href="#/cameras" data-view="cameras">Cameras</a>
+        <a href="#/system" data-view="system">Storage</a>
+      </nav>
+      <button id="logout" class="ghost">Sign out</button>
+    </header>
+
+    <main>
+      <!-- Live view -->
+      <section id="view-live" class="view" hidden>
+        <div class="toolbar">
+          <h2>Live view</h2>
+          <div class="seg" id="layout-picker" role="group" aria-label="Grid layout">
+            <button data-cols="1">1</button>
+            <button data-cols="2">2×2</button>
+            <button data-cols="3">3×3</button>
+            <button data-cols="4">4×4</button>
+          </div>
+        </div>
+        <div id="grid" class="grid"></div>
+        <p id="live-empty" class="empty" hidden>No cameras yet. <a href="#/cameras">Add a camera</a> to get started.</p>
+      </section>
+
+      <!-- Recordings -->
+      <section id="view-recordings" class="view" hidden>
+        <div class="toolbar">
+          <h2>Recordings</h2>
+          <div class="filters">
+            <select id="rec-camera" aria-label="Camera"></select>
+            <select id="rec-date" aria-label="Date"></select>
+          </div>
+        </div>
+        <div class="player-wrap">
+          <video id="rec-player" controls playsinline></video>
+          <div id="rec-now" class="muted">Select a recording to play.</div>
+        </div>
+        <div id="rec-list" class="rec-list"></div>
+      </section>
+
+      <!-- Cameras -->
+      <section id="view-cameras" class="view" hidden>
+        <div class="toolbar">
+          <h2>Cameras</h2>
+          <button id="add-camera" class="primary">Add camera</button>
+        </div>
+        <form id="cam-form" class="card cam-form" hidden>
+          <h3 id="cam-form-title">Add camera</h3>
+          <input type="hidden" name="id">
+          <div class="form-grid">
+            <label>Name <input name="name" required maxlength="80" placeholder="Front door"></label>
+            <label class="wide">Stream URL
+              <input name="url" required placeholder="rtsp://192.168.1.50:554/Streaming/Channels/101">
+              <small class="muted">RTSP/HTTP URL of the camera or DVR channel, or <code>/dev/video0</code> for an analog capture card.</small>
+            </label>
+            <label>Username <input name="username" autocomplete="off"></label>
+            <label>Password <input name="password" type="password" autocomplete="new-password"></label>
+            <label>Segment length (minutes) <input name="segmentMinutes" type="number" min="1" max="60" value="10"></label>
+          </div>
+          <div class="checks">
+            <label><input type="checkbox" name="enabled" checked> Enabled</label>
+            <label><input type="checkbox" name="record" checked> Record to disk</label>
+            <label><input type="checkbox" name="audio"> Record audio</label>
+            <label><input type="checkbox" name="transcode"> Transcode to H.264 <small class="muted">(for H.265/MJPEG cameras; uses CPU)</small></label>
+          </div>
+          <p id="cam-form-error" class="error" role="alert"></p>
+          <div class="actions">
+            <button type="submit" class="primary">Save</button>
+            <button type="button" id="cam-cancel" class="ghost">Cancel</button>
+          </div>
+        </form>
+        <table class="table" id="cam-table">
+          <thead><tr><th>Name</th><th>Source</th><th>Status</th><th>Recording</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </section>
+
+      <!-- Storage -->
+      <section id="view-system" class="view" hidden>
+        <div class="toolbar"><h2>Storage</h2></div>
+        <div id="system-info" class="stats"></div>
+      </section>
+    </main>
+  </div>
+
+  <script src="/vendor/hls.min.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>

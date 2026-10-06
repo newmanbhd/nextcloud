@@ -1,0 +1,19 @@
+{
+  "name": "camvault-nvr",
+  "version": "1.0.0",
+  "description": "Self-hosted web NVR: records CCTV/IP cameras to disk with ffmpeg and provides a live view and playback UI",
+  "main": "src/server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test test/*.test.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "express": "^5.2.1",
+    "hls.js": "^1.7.3"
+  }
+}
