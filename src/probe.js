@@ -34,7 +34,13 @@ function probe(cam, { ffprobePath = 'ffprobe', timeoutMs = 15000 } = {}) {
       try { streams = JSON.parse(out).streams || []; } catch { /* no JSON */ }
       const video = streams.find((s) => s.codec_type === 'video');
       if (code !== 0 || !video) {
-        return resolve({ ok: false, error: explain(redact(err.trim() || `ffprobe exited with code ${code}`, cam)) });
+        let msg = explain(redact(err.trim() || `ffprobe exited with code ${code}`, cam));
+        if (missingPath(cam.url)) {
+          msg = 'The address has only the IP and port, with no stream path after it. For a DVR, use '
+            + '"Add DVR / NVR" and pick your brand, or enter the full address, e.g. '
+            + 'rtsp://IP:554/chID=1&streamType=main&linkType=tcp for TVT.\n' + msg;
+        }
+        return resolve({ ok: false, error: msg });
       }
       const audio = streams.find((s) => s.codec_type === 'audio');
       resolve({
@@ -44,6 +50,16 @@ function probe(cam, { ffprobePath = 'ffprobe', timeoutMs = 15000 } = {}) {
       });
     });
   });
+}
+
+/** True for rtsp://host:port or rtsp://host:port/ with nothing after it. */
+function missingPath(url) {
+  try {
+    const u = new URL(url);
+    return /^rtsps?:$/i.test(u.protocol) && (u.pathname === '' || u.pathname === '/') && !u.search;
+  } catch {
+    return false;
+  }
 }
 
 /** Add a plain-English hint to common ffprobe errors. */
@@ -58,4 +74,4 @@ function explain(msg) {
   return hint ? `${hint[1]}\n(${msg.split('\n').pop()})` : msg;
 }
 
-module.exports = { probe, explain };
+module.exports = { probe, explain, missingPath };

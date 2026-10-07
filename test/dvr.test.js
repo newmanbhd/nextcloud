@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const { planDvr } = require('../src/dvr');
-const { explain } = require('../src/probe');
+const { explain, missingPath } = require('../src/probe');
 
 const base = { name: 'Shop DVR', brand: 'hikvision', host: '192.168.1.64', username: 'admin', password: 'pw', channels: 4 };
 
@@ -53,4 +53,10 @@ test('rejects bad input', () => {
 test('probe errors get plain-English hints', () => {
   assert.match(explain('method DESCRIBE failed: 401 Unauthorized'), /Wrong username or password/);
   assert.match(explain('Connection to tcp://1.2.3.4:554 failed: Connection refused'), /refused/);
+});
+
+test('detects an RTSP address with no stream path', () => {
+  assert.ok(missingPath('rtsp://192.168.20.200:554/'));
+  assert.ok(missingPath('rtsp://192.168.20.200:554'));
+  assert.ok(!missingPath('rtsp://192.168.20.200:554/chID=1&streamType=main&linkType=tcp'));
 });
