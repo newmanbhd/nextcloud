@@ -16,6 +16,11 @@ const BRANDS = {
     main: 'rtsp://{host}:{port}/unicast/c{ch}/s0/live',
     sub: 'rtsp://{host}:{port}/unicast/c{ch}/s1/live',
   },
+  tvt: {
+    label: 'TVT (incl. DVR-AT / TD-27xx and rebadged TVT units)',
+    main: 'rtsp://{host}:{port}/chID={ch}&streamType=main&linkType=tcp',
+    sub: 'rtsp://{host}:{port}/chID={ch}&streamType=sub&linkType=tcp',
+  },
   reolink: {
     label: 'Reolink NVR',
     main: 'rtsp://{host}:{port}/h264Preview_{ch2}_main',

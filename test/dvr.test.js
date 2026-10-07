@@ -29,6 +29,14 @@ test('dahua, uniview and reolink patterns', () => {
     'rtsp://192.168.1.64:8554/h264Preview_01_main');
 });
 
+test('TVT pattern (e.g. DVR-AT2716TE)', () => {
+  const { cameras } = planDvr({ ...base, brand: 'tvt', channels: 16 });
+  assert.strictEqual(cameras[0].url, 'rtsp://192.168.1.64:554/chID=1&streamType=main&linkType=tcp');
+  assert.strictEqual(cameras[15].url, 'rtsp://192.168.1.64:554/chID=16&streamType=main&linkType=tcp');
+  assert.strictEqual(planDvr({ ...base, brand: 'tvt', channels: 1, stream: 'sub' }).cameras[0].url,
+    'rtsp://192.168.1.64:554/chID=1&streamType=sub&linkType=tcp');
+});
+
 test('custom pattern with zero-padded channels', () => {
   const { cameras } = planDvr({ ...base, brand: 'custom', template: 'rtsp://{host}:{port}/ch{ch2}/0', channels: 2 });
   assert.deepStrictEqual(cameras.map((c) => c.url), ['rtsp://192.168.1.64:554/ch01/0', 'rtsp://192.168.1.64:554/ch02/0']);

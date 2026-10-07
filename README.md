@@ -54,6 +54,7 @@ Most IP cameras provide an RTSP stream. Enter the URL without credentials and pu
 | Dahua / Amcrest / Lorex | `rtsp://IP:554/cam/realmonitor?channel=1&subtype=0` |
 | Reolink | `rtsp://IP:554/h264Preview_01_main` |
 | Uniview | `rtsp://IP:554/unicast/c1/s0/live` |
+| TVT (incl. DVR-AT2716TE) | `rtsp://IP:554/chID=1&streamType=main&linkType=tcp` (sub-stream: `streamType=sub`) |
 | Axis | `rtsp://IP/axis-media/media.amp` |
 | TP-Link Tapo / VIGI | `rtsp://IP:554/stream1` (create a "camera account" in the app first) |
 | Ubiquiti UniFi Protect | Enable RTSP per camera in Protect, then use the `rtsps://IP:7441/...` URL it shows |
