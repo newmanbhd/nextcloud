@@ -91,7 +91,7 @@ main { padding: 20px; max-width: 1800px; margin: 0 auto; }
 
 /* Cameras */
 .cam-form { margin-bottom: 16px; display: grid; gap: 14px; }
-.form-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.form-grid { align-items: start; display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
 .form-grid label { display: grid; gap: 4px; min-width: 0; }
 .form-grid input, .form-grid select { width: 100%; min-width: 0; }
 .form-grid .wide { grid-column: 1 / -1; }

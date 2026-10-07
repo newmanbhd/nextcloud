@@ -70,10 +70,42 @@
         <div class="toolbar">
           <h2>Cameras</h2>
           <div class="actions">
+            <button id="add-onvif">Add via ONVIF</button>
             <button id="add-dvr">Add DVR / NVR</button>
             <button id="add-camera" class="primary">Add camera</button>
           </div>
         </div>
+        <form id="onvif-form" class="card cam-form" hidden>
+          <h3>Add cameras via ONVIF</h3>
+          <p class="muted">Works with most IP cameras, DVRs and NVRs. CamVault asks the device for its video streams, so you don't need to know the stream address.</p>
+          <div class="form-grid">
+            <label>Name <input name="name" required maxlength="60" placeholder="Shop DVR"></label>
+            <label>IP address <input name="host" required placeholder="192.168.1.64"></label>
+            <label>ONVIF port <input name="port" type="number" min="1" max="65535" value="80">
+              <small class="muted">Usually 80. Some devices use 8000, 8080 or 8899.</small></label>
+            <label>Username <input name="username" autocomplete="off" value="admin"></label>
+            <label>Password <input name="password" type="password" autocomplete="new-password"></label>
+          </div>
+          <p id="onvif-status" class="test-result" role="status"></p>
+          <p id="onvif-error" class="error" role="alert"></p>
+          <div id="onvif-results" hidden>
+            <p class="muted">Tick the streams to record. Main streams (full quality) are ticked; sub streams are lower quality and use less disk space.</p>
+            <table class="table">
+              <thead><tr><th><input type="checkbox" id="onvif-all" aria-label="Select all"></th><th>Channel</th><th>Stream</th><th>Video</th><th>Address</th></tr></thead>
+              <tbody id="onvif-list"></tbody>
+            </table>
+            <div class="checks" style="margin-top:12px">
+              <label><input type="checkbox" name="record" checked> Record to disk</label>
+              <label><input type="checkbox" name="audio"> Record audio</label>
+            </div>
+          </div>
+          <div class="actions">
+            <button type="button" id="onvif-find" class="primary">Find streams</button>
+            <button type="submit" id="onvif-add" class="primary" hidden>Add selected</button>
+            <button type="button" id="onvif-cancel" class="ghost">Cancel</button>
+          </div>
+        </form>
+
         <form id="dvr-form" class="card cam-form" hidden>
           <h3>Add a DVR / NVR</h3>
           <p class="muted">Adds every channel of the recorder as a separate camera. Enter the DVR's own IP address and the login you use for its menu or phone app.</p>

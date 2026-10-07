@@ -62,6 +62,14 @@ Most IP cameras provide an RTSP stream. Enter the URL without credentials and pu
 
 You can check a URL first with `ffprobe rtsp://user:pass@IP:554/...`.
 
+### ONVIF (easiest, if your device supports it)
+
+Most IP cameras, DVRs and NVRs support **ONVIF**, a standard that lets CamVault ask the device for its stream addresses. Go to **Cameras → Add via ONVIF**, then enter the IP address, the ONVIF port (usually `80`; some devices use `8000`, `8080` or `8899`) and the login, and click **Find streams**. CamVault lists every channel's main and sub stream. Tick the ones you want and click **Add selected**.
+
+- ONVIF often has to be **switched on** in the device's settings (look under *Network → ONVIF* or *Platform access*). Some devices also need a separate ONVIF user created there.
+- If it says the login is wrong but the password is right, check that the device's clock is roughly correct. ONVIF logins are time-stamped.
+- ONVIF is only used to look up the addresses. The video itself still comes over RTSP (port 554).
+
 ### DVRs / NVRs (and the analog CCTV cameras plugged into them)
 
 Go to **Cameras → Add DVR / NVR**. Choose the brand, then enter the DVR's IP address, the login you use for its menu or phone app, and the number of channels. CamVault adds one camera per channel, named e.g. *Shop DVR Ch 1*, *Shop DVR Ch 2*, …, and groups them so the **Live** page can show just that DVR.

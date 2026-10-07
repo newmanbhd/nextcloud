@@ -284,6 +284,7 @@ function openForm(cam) {
   form.reset();
   form.hidden = false;
   $('#dvr-form').hidden = true;
+  $('#onvif-form').hidden = true;
   $('#cam-form-error').textContent = '';
   showTest($('#cam-test-result'), null);
   $('#cam-form-title').textContent = cam ? `Edit ${cam.name}` : 'Add camera';
@@ -333,6 +334,90 @@ $('#cam-test').addEventListener('click', () => {
     { id: f.id.value, url: f.url.value, username: f.username.value, password: f.password.value });
 });
 
+// ---------------------------------------------------------------- ONVIF
+const onvifForm = $('#onvif-form');
+let onvifStreams = [];
+
+$('#add-onvif').addEventListener('click', () => {
+  form.hidden = true;
+  dvrForm.hidden = true;
+  onvifForm.reset();
+  onvifForm.hidden = false;
+  onvifStreams = [];
+  $('#onvif-results').hidden = true;
+  $('#onvif-add').hidden = true;
+  $('#onvif-status').textContent = '';
+  $('#onvif-error').textContent = '';
+  onvifForm.elements.name.focus();
+});
+$('#onvif-cancel').addEventListener('click', () => { onvifForm.hidden = true; });
+
+$('#onvif-find').addEventListener('click', async () => {
+  const f = onvifForm.elements;
+  const btn = $('#onvif-find');
+  $('#onvif-error').textContent = '';
+  $('#onvif-results').hidden = true;
+  $('#onvif-add').hidden = true;
+  $('#onvif-status').className = 'test-result';
+  $('#onvif-status').textContent = 'Asking the device for its streams…';
+  btn.disabled = true;
+  try {
+    const r = await api('POST', '/api/onvif', {
+      host: f.host.value, port: Number(f.port.value), username: f.username.value, password: f.password.value,
+    });
+    onvifStreams = r.streams;
+    const chans = new Set(r.streams.map((s) => s.channel)).size;
+    const dev = [r.device.manufacturer, r.device.model].filter(Boolean).join(' ');
+    $('#onvif-status').className = 'test-result ok';
+    $('#onvif-status').textContent = `✓ Connected${dev ? ` to ${dev}` : ''}: found ${chans} channel(s), ${r.streams.length} stream(s).`;
+    if (!f.name.value.trim()) f.name.value = r.device.model || 'Camera';
+    $('#onvif-list').replaceChildren(...r.streams.map((s, i) => el('tr', {},
+      el('td', {}, el('input', { type: 'checkbox', 'data-i': i, checked: s.main, 'aria-label': `Add channel ${s.channel} ${s.main ? 'main' : 'sub'}` })),
+      el('td', {}, String(s.channel)),
+      el('td', {}, s.main ? 'Main' : 'Sub', s.name ? el('div', { class: 'muted' }, s.name) : null),
+      el('td', {}, [s.encoding.toUpperCase(), s.width ? `${s.width}×${s.height}` : ''].filter(Boolean).join(' '),
+        s.encoding && s.encoding !== 'h264' ? el('div', { class: 'muted' }, 'Not H.264: may need "Transcode"') : null),
+      el('td', { class: 'src' }, s.url))));
+    $('#onvif-all').checked = false;
+    $('#onvif-results').hidden = false;
+    $('#onvif-add').hidden = false;
+  } catch (err) {
+    $('#onvif-status').textContent = '';
+    $('#onvif-error').textContent = err.message;
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+$('#onvif-all').addEventListener('change', (e) => {
+  for (const cb of document.querySelectorAll('#onvif-list input[type=checkbox]')) cb.checked = e.target.checked;
+});
+
+onvifForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const f = onvifForm.elements;
+  const picked = [...document.querySelectorAll('#onvif-list input[type=checkbox]:checked')].map((cb) => onvifStreams[cb.dataset.i]);
+  if (!picked.length) { $('#onvif-error').textContent = 'Tick at least one stream to add.'; return; }
+  const name = f.name.value.trim() || 'Camera';
+  const multi = new Set(onvifStreams.map((s) => s.channel)).size > 1;
+  $('#onvif-error').textContent = '';
+  try {
+    for (const s of picked) {
+      await api('POST', '/api/cameras', {
+        name: `${name}${multi ? ` Ch ${s.channel}` : ''}${s.main ? '' : ' (sub)'}`,
+        group: multi ? name : '',
+        url: s.url, username: f.username.value, password: f.password.value,
+        record: f.record.checked, audio: f.audio.checked, enabled: true,
+      });
+    }
+    onvifForm.hidden = true;
+    renderCameras();
+  } catch (err) {
+    $('#onvif-error').textContent = err.message;
+    renderCameras();
+  }
+});
+
 // ---------------------------------------------------------------- DVR
 const dvrForm = $('#dvr-form');
 let dvrBrands = null;
@@ -366,6 +451,7 @@ $('#add-dvr').addEventListener('click', async () => {
     $('#dvr-brand').replaceChildren(...dvrBrands.map((b) => el('option', { value: b.id }, b.label)));
   }
   form.hidden = true;
+  $('#onvif-form').hidden = true;
   dvrForm.reset();
   dvrForm.hidden = false;
   $('#dvr-form-error').textContent = '';

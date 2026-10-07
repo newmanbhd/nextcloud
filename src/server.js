@@ -7,6 +7,7 @@ const cfg = require('./config');
 const { CameraStore, toPublic, validate, ID_RE } = require('./cameras');
 const dvr = require('./dvr');
 const { probe: defaultProbe } = require('./probe');
+const onvif = require('./onvif');
 const { RecorderManager } = require('./recorder');
 const retention = require('./retention');
 const { createAuth } = require('./auth');
@@ -22,7 +23,7 @@ function loadSecret() {
   return secret;
 }
 
-function createApp({ store, recorder, auth, probe = defaultProbe }) {
+function createApp({ store, recorder, auth, probe = defaultProbe, discover = onvif.discoverStreams }) {
   const app = express();
   app.disable('x-powered-by');
   app.set('trust proxy', process.env.TRUST_PROXY === '1' ? 1 : false);
@@ -85,6 +86,17 @@ function createApp({ store, recorder, auth, probe = defaultProbe }) {
     }
     await recorder.sync(store.list());
     res.status(201).json(created.map(withStatus));
+  });
+
+  // Ask an ONVIF camera/DVR for its stream addresses.
+  priv.post('/api/onvif', async (req, res) => {
+    const b = req.body || {};
+    try {
+      res.json(await discover({ host: b.host, port: b.port, username: b.username, password: b.password }));
+    } catch (e) {
+      if (!(e instanceof onvif.OnvifError)) console.error('onvif:', e);
+      res.status(400).json({ error: e.message });
+    }
   });
 
   // Test a stream before saving it. With dvr:true, tests the DVR's first channel.
