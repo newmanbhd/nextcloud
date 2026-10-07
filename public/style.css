@@ -92,7 +92,8 @@ main { padding: 20px; max-width: 1800px; margin: 0 auto; }
 /* Cameras */
 .cam-form { margin-bottom: 16px; display: grid; gap: 14px; }
 .form-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
-.form-grid label { display: grid; gap: 4px; }
+.form-grid label { display: grid; gap: 4px; min-width: 0; }
+.form-grid input, .form-grid select { width: 100%; min-width: 0; }
 .form-grid .wide { grid-column: 1 / -1; }
 .checks { display: flex; flex-wrap: wrap; gap: 16px; }
 .checks label { display: flex; gap: 6px; align-items: center; }
@@ -103,6 +104,11 @@ main { padding: 20px; max-width: 1800px; margin: 0 auto; }
 .table td.src { font-family: ui-monospace, monospace; font-size: 12px; word-break: break-all; color: var(--muted); }
 .table td.row-acts { white-space: nowrap; text-align: right; }
 .table .err { color: var(--bad); font-size: 12px; white-space: pre-wrap; margin-top: 4px; max-width: 420px; }
+
+.test-result { white-space: pre-wrap; margin: 0; }
+.cam-form .test-result:empty, .cam-form .error:empty, #dvr-preview:empty { display: none; }
+.test-result.ok { color: var(--ok); }
+.test-result.bad { color: var(--bad); }
 
 /* Storage */
 .stats { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }

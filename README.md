@@ -61,12 +61,22 @@ Most IP cameras provide an RTSP stream. Enter the URL without credentials and pu
 
 You can check a URL first with `ffprobe rtsp://user:pass@IP:554/...`.
 
-### Analog CCTV cameras (coax / BNC)
+### DVRs / NVRs (and the analog CCTV cameras plugged into them)
 
-Analog cameras don't speak IP. You have two options:
+Go to **Cameras → Add DVR / NVR**. Choose the brand, then enter the DVR's IP address, the login you use for its menu or phone app, and the number of channels. CamVault adds one camera per channel, named e.g. *Shop DVR Ch 1*, *Shop DVR Ch 2*, …, and groups them so the **Live** page can show just that DVR.
 
-1. **Through your existing DVR (recommended).** Almost every DVR (Hikvision, Dahua and similar) exposes each channel over RTSP, e.g. `rtsp://DVR-IP:554/Streaming/Channels/301` for channel 3. Add each channel as a camera.
-2. **Capture card / USB video grabber** in the server. Use `/dev/video0` (`/dev/video1`, ...) as the URL. With Docker, uncomment the `devices:` section in `docker-compose.yml`. Capture devices are always encoded to H.264, which uses some CPU.
+- Click **Test channel** first. It connects to channel 1 and tells you whether the address, port and password are right.
+- **Main stream** is full quality. **Sub stream** is lower resolution and uses far less disk space and bandwidth.
+- Channels with no camera plugged in just show *Reconnecting…*. Delete them on the Cameras page.
+- Not listed? Choose **Other** and enter the address pattern, using `{ch}` for the channel number (1, 2, …) or `{ch2}` for a two-digit number (01, 02, …), e.g. `rtsp://{host}:{port}/ch{ch2}/0`.
+- RTSP must be enabled on the DVR (usually under *Network → Advanced → RTSP* or *Port*). The default port is 554.
+- Your DVR keeps working and recording as normal. CamVault just makes its own copy.
+
+Every camera form also has a **Test connection** button.
+
+### Analog cameras without a DVR
+
+Use a capture card or USB video grabber in the server, and enter `/dev/video0` (`/dev/video1`, ...) as the URL. With Docker, uncomment the `devices:` section in `docker-compose.yml`. With Podman on RHEL, see [INSTALL-RHEL.md](INSTALL-RHEL.md#analog-cctv-capture-card). Capture devices are always encoded to H.264, which uses some CPU.
 
 ### Codec tips
 

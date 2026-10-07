@@ -105,7 +105,9 @@ sudo systemctl restart camvault
 
 1. On any PC or phone on the same network, open the address the installer printed, e.g. `http://192.168.1.20:8080`.
 2. Sign in as `admin` with the password.
-3. Go to **Cameras → Add camera**, enter a name and the camera's stream address (see the table in [README.md](README.md#ip-cameras)), plus the camera's username and password, then click **Save**.
+3. Add your cameras:
+   - **DVR / NVR:** click **Cameras → Add DVR / NVR**. Pick the brand, enter the DVR's IP address, its login and the number of channels, click **Test channel**, then **Add channels**. Every channel is added in one go.
+   - **Single IP camera:** click **Cameras → Add camera**, enter a name and the camera's stream address (see the table in [README.md](README.md#ip-cameras)) plus its username and password, click **Test connection**, then **Save**.
 4. Go to **Live**. Within about 10 seconds the camera's status turns green ("Live") and the video appears.
 
 If a camera says **Reconnecting…**, the Cameras page shows the error. It's usually a wrong stream address, username or password.

@@ -35,11 +35,14 @@
       <section id="view-live" class="view" hidden>
         <div class="toolbar">
           <h2>Live view</h2>
+          <div class="filters">
+          <select id="live-group" aria-label="Show cameras from" hidden></select>
           <div class="seg" id="layout-picker" role="group" aria-label="Grid layout">
             <button data-cols="1">1</button>
             <button data-cols="2">2×2</button>
             <button data-cols="3">3×3</button>
             <button data-cols="4">4×4</button>
+          </div>
           </div>
         </div>
         <div id="grid" class="grid"></div>
@@ -66,8 +69,47 @@
       <section id="view-cameras" class="view" hidden>
         <div class="toolbar">
           <h2>Cameras</h2>
-          <button id="add-camera" class="primary">Add camera</button>
+          <div class="actions">
+            <button id="add-dvr">Add DVR / NVR</button>
+            <button id="add-camera" class="primary">Add camera</button>
+          </div>
         </div>
+        <form id="dvr-form" class="card cam-form" hidden>
+          <h3>Add a DVR / NVR</h3>
+          <p class="muted">Adds every channel of the recorder as a separate camera. Enter the DVR's own IP address and the login you use for its menu or phone app.</p>
+          <div class="form-grid">
+            <label>DVR name <input name="name" required maxlength="60" placeholder="Shop DVR"></label>
+            <label>Brand <select name="brand" id="dvr-brand"></select></label>
+            <label>IP address <input name="host" required placeholder="192.168.1.64"></label>
+            <label>RTSP port <input name="port" type="number" min="1" max="65535" value="554"></label>
+            <label>Username <input name="username" autocomplete="off" value="admin"></label>
+            <label>Password <input name="password" type="password" autocomplete="new-password"></label>
+            <label>Number of channels <input name="channels" type="number" min="1" max="64" value="4" required></label>
+            <label>Quality
+              <select name="stream">
+                <option value="main">Main stream (full quality)</option>
+                <option value="sub">Sub stream (low quality, less disk space)</option>
+              </select>
+            </label>
+            <label class="wide" id="dvr-template-row" hidden>Address pattern
+              <input name="template" placeholder="rtsp://{host}:{port}/ch{ch2}/0">
+              <small class="muted"><code>{ch}</code> becomes 1, 2, 3… and <code>{ch2}</code> becomes 01, 02, 03…. <code>{host}</code> and <code>{port}</code> are filled in from above. Don't put the username or password in the pattern.</small>
+            </label>
+          </div>
+          <div class="checks">
+            <label><input type="checkbox" name="record" checked> Record to disk</label>
+            <label><input type="checkbox" name="audio"> Record audio</label>
+          </div>
+          <p class="muted" id="dvr-preview"></p>
+          <p id="dvr-test-result" class="test-result" role="status"></p>
+          <p id="dvr-form-error" class="error" role="alert"></p>
+          <div class="actions">
+            <button type="submit" class="primary">Add channels</button>
+            <button type="button" id="dvr-test">Test channel</button>
+            <button type="button" id="dvr-cancel" class="ghost">Cancel</button>
+          </div>
+        </form>
+
         <form id="cam-form" class="card cam-form" hidden>
           <h3 id="cam-form-title">Add camera</h3>
           <input type="hidden" name="id">
@@ -80,6 +122,7 @@
             <label>Username <input name="username" autocomplete="off"></label>
             <label>Password <input name="password" type="password" autocomplete="new-password"></label>
             <label>Segment length (minutes) <input name="segmentMinutes" type="number" min="1" max="60" value="10"></label>
+            <label>Group / DVR <input name="group" maxlength="80" placeholder="(optional)"></label>
           </div>
           <div class="checks">
             <label><input type="checkbox" name="enabled" checked> Enabled</label>
@@ -87,9 +130,11 @@
             <label><input type="checkbox" name="audio"> Record audio</label>
             <label><input type="checkbox" name="transcode"> Transcode to H.264 <small class="muted">(for H.265/MJPEG cameras; uses CPU)</small></label>
           </div>
+          <p id="cam-test-result" class="test-result" role="status"></p>
           <p id="cam-form-error" class="error" role="alert"></p>
           <div class="actions">
             <button type="submit" class="primary">Save</button>
+            <button type="button" id="cam-test">Test connection</button>
             <button type="button" id="cam-cancel" class="ghost">Cancel</button>
           </div>
         </form>

@@ -13,6 +13,7 @@ const DEFAULTS = {
   audio: false,
   transcode: false,
   segmentMinutes: 10,
+  group: '',
 };
 
 function slugify(name) {
@@ -35,6 +36,11 @@ function validate(input, { partial = false } = {}) {
       errors.push('url must be rtsp://, rtsps://, http(s)://, rtmp://, udp://, srt:// or a /dev/videoN capture device');
     }
     out.url = url;
+  }
+  if (input.group !== undefined) {
+    const group = String(input.group).trim();
+    if (group.length > 80) errors.push('group must be at most 80 chars');
+    out.group = group;
   }
   for (const k of ['username', 'password']) {
     if (input[k] !== undefined) out[k] = String(input[k]);

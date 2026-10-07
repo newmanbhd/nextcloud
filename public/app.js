@@ -117,6 +117,10 @@ function setLayout(cols) {
   for (const b of document.querySelectorAll('#layout-picker button')) b.classList.toggle('active', b.dataset.cols === String(cols));
   try { localStorage.setItem('nvr.cols', cols); } catch { /* storage unavailable */ }
 }
+$('#live-group').addEventListener('change', (e) => {
+  try { localStorage.setItem('nvr.group', e.target.value); } catch { /* ignore */ }
+  renderLive();
+});
 $('#layout-picker').addEventListener('click', (e) => { if (e.target.dataset.cols) setLayout(e.target.dataset.cols); });
 
 function tileStatus(cam) {
@@ -131,10 +135,19 @@ async function renderLive() {
   let saved = 2;
   try { saved = localStorage.getItem('nvr.cols') || 2; } catch { /* ignore */ }
   setLayout(saved);
-  const cams = await loadCameras();
+  const allCams = await loadCameras();
+  const groups = [...new Set(allCams.map((c) => c.group).filter(Boolean))].sort();
+  const gsel = $('#live-group');
+  let group = gsel.value;
+  if (!group) { try { group = localStorage.getItem('nvr.group') || ''; } catch { /* ignore */ } }
+  if (group && !groups.includes(group)) group = '';
+  gsel.hidden = groups.length === 0;
+  gsel.replaceChildren(el('option', { value: '' }, 'All cameras'), ...groups.map((g) => el('option', { value: g }, g)));
+  gsel.value = group;
+  const cams = group ? allCams.filter((c) => c.group === group) : allCams;
   const grid = $('#grid');
   grid.replaceChildren();
-  $('#live-empty').hidden = cams.length > 0;
+  $('#live-empty').hidden = allCams.length > 0;
 
   for (const cam of cams) {
     const video = el('video', { muted: true, autoplay: true, playsinline: true });
@@ -174,7 +187,7 @@ async function renderLive() {
     if (state.view !== 'live') return;
     const cams2 = await loadCameras().catch(() => null);
     if (!cams2) return;
-    if (cams2.map((c) => c.id).join() !== cams.map((c) => c.id).join()) return renderLive();
+    if (cams2.map((c) => c.id + c.group).join() !== allCams.map((c) => c.id + c.group).join()) return renderLive();
     for (const c of cams2) $(`.tile[data-id="${CSS.escape(c.id)}"]`)?._update(c);
   }, 4000);
 }
@@ -270,25 +283,120 @@ const form = $('#cam-form');
 function openForm(cam) {
   form.reset();
   form.hidden = false;
+  $('#dvr-form').hidden = true;
   $('#cam-form-error').textContent = '';
+  showTest($('#cam-test-result'), null);
   $('#cam-form-title').textContent = cam ? `Edit ${cam.name}` : 'Add camera';
   form.elements.id.value = cam ? cam.id : '';
   form.elements.password.placeholder = cam && cam.hasPassword ? '(unchanged)' : '';
   if (cam) {
-    for (const k of ['name', 'url', 'username', 'segmentMinutes']) form.elements[k].value = cam[k] ?? '';
+    for (const k of ['name', 'url', 'username', 'segmentMinutes', 'group']) form.elements[k].value = cam[k] ?? '';
     for (const k of ['enabled', 'record', 'audio', 'transcode']) form.elements[k].checked = Boolean(cam[k]);
   }
   form.elements.name.focus();
 }
 
 $('#add-camera').addEventListener('click', () => openForm(null));
+
+/** Show the result of a /api/probe call under a form. */
+function showTest(node, r) {
+  node.className = 'test-result';
+  if (!r) { node.textContent = ''; return; }
+  if (r.pending) { node.textContent = 'Connecting… (this can take up to 15 seconds)'; return; }
+  if (r.ok) {
+    const v = r.video;
+    let msg = `✓ Connected: ${v.codec.toUpperCase()} ${v.width}×${v.height}${r.audio ? `, audio ${r.audio.codec}` : ''}`;
+    if (v.codec !== 'h264') msg += '\nNote: this is not H.264, so browsers may not show it. Tick "Transcode to H.264", or set the camera/DVR to H.264.';
+    node.textContent = msg;
+    node.classList.add('ok');
+  } else {
+    node.textContent = `✗ ${r.error}`;
+    node.classList.add('bad');
+  }
+}
+
+async function runTest(button, node, body) {
+  button.disabled = true;
+  showTest(node, { pending: true });
+  try {
+    showTest(node, await api('POST', '/api/probe', body));
+  } catch (err) {
+    showTest(node, { ok: false, error: err.message });
+  } finally {
+    button.disabled = false;
+  }
+}
+
+$('#cam-test').addEventListener('click', () => {
+  const f = form.elements;
+  runTest($('#cam-test'), $('#cam-test-result'),
+    { id: f.id.value, url: f.url.value, username: f.username.value, password: f.password.value });
+});
+
+// ---------------------------------------------------------------- DVR
+const dvrForm = $('#dvr-form');
+let dvrBrands = null;
+
+function dvrBody() {
+  const f = dvrForm.elements;
+  return {
+    name: f.name.value, brand: f.brand.value, host: f.host.value.trim().replace(/^\w+:\/\//, '').replace(/\/.*$/, ''),
+    port: Number(f.port.value), username: f.username.value, password: f.password.value,
+    channels: Number(f.channels.value), stream: f.stream.value, template: f.template.value,
+    record: f.record.checked, audio: f.audio.checked,
+  };
+}
+
+function updateDvrPreview() {
+  const b = dvrBody();
+  $('#dvr-template-row').hidden = b.brand !== 'custom';
+  const brand = dvrBrands?.find((x) => x.id === b.brand);
+  const pattern = b.brand === 'custom' ? b.template : brand?.[b.stream];
+  if (!pattern || !b.host) { $('#dvr-preview').textContent = ''; return; }
+  const url = (ch) => pattern.replaceAll('{host}', b.host).replaceAll('{port}', b.port)
+    .replaceAll('{ch2}', String(ch).padStart(2, '0')).replaceAll('{ch}', ch);
+  $('#dvr-preview').textContent = b.channels > 1
+    ? `Will add ${b.channels} cameras, e.g. channel 1: ${url(1)}`
+    : `Will add 1 camera: ${url(1)}`;
+}
+
+$('#add-dvr').addEventListener('click', async () => {
+  if (!dvrBrands) {
+    dvrBrands = await api('GET', '/api/dvr/brands');
+    $('#dvr-brand').replaceChildren(...dvrBrands.map((b) => el('option', { value: b.id }, b.label)));
+  }
+  form.hidden = true;
+  dvrForm.reset();
+  dvrForm.hidden = false;
+  $('#dvr-form-error').textContent = '';
+  showTest($('#dvr-test-result'), null);
+  updateDvrPreview();
+  dvrForm.elements.name.focus();
+});
+dvrForm.addEventListener('input', updateDvrPreview);
+$('#dvr-cancel').addEventListener('click', () => { dvrForm.hidden = true; });
+$('#dvr-test').addEventListener('click', () => {
+  runTest($('#dvr-test'), $('#dvr-test-result'), { ...dvrBody(), dvr: true });
+});
+
+dvrForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  $('#dvr-form-error').textContent = '';
+  try {
+    await api('POST', '/api/dvr', dvrBody());
+    dvrForm.hidden = true;
+    renderCameras();
+  } catch (err) {
+    $('#dvr-form-error').textContent = err.message;
+  }
+});
 $('#cam-cancel').addEventListener('click', () => { form.hidden = true; });
 
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
   const f = form.elements;
   const body = {
-    name: f.name.value, url: f.url.value, username: f.username.value, password: f.password.value,
+    name: f.name.value, url: f.url.value, username: f.username.value, password: f.password.value, group: f.group.value,
     segmentMinutes: Number(f.segmentMinutes.value),
     enabled: f.enabled.checked, record: f.record.checked, audio: f.audio.checked, transcode: f.transcode.checked,
   };
@@ -306,7 +414,7 @@ async function renderCameras() {
   const cams = await loadCameras();
   const tbody = $('#cam-table tbody');
   tbody.replaceChildren(...cams.map((c) => el('tr', {},
-    el('td', {}, el('strong', {}, c.name), el('div', { class: 'muted' }, c.id)),
+    el('td', {}, el('strong', {}, c.name), el('div', { class: 'muted' }, c.group ? `${c.group} · ${c.id}` : c.id)),
     el('td', { class: 'src' }, c.url),
     el('td', {},
       el('span', { class: `badge ${c.status.state}` }, stateLabel[c.status.state] || c.status.state),

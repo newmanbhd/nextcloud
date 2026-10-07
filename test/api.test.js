@@ -13,6 +13,8 @@ const { createAuth } = require('../src/auth');
 
 // A recorder stub: these tests exercise the HTTP layer, not ffmpeg.
 const recorder = { sync: async () => {}, restart: async () => {}, status: () => ({ state: 'stopped' }) };
+const probed = [];
+const probe = async (cam) => { probed.push(cam); return { ok: true, video: { codec: 'h264', width: 1920, height: 1080 }, audio: null }; };
 
 let base;
 let server;
@@ -20,7 +22,7 @@ test.before(async () => {
   fs.mkdirSync(cfg.recordingsDir, { recursive: true });
   const store = new CameraStore(cfg.camerasFile);
   const auth = createAuth({ user: 'admin', password: 'pw', secret: 'test-secret', sessionHours: 1 });
-  server = createApp({ store, recorder, auth }).listen(0);
+  server = createApp({ store, recorder, auth, probe }).listen(0);
   await new Promise((r) => server.once('listening', r));
   base = `http://127.0.0.1:${server.address().port}`;
 });
@@ -75,4 +77,29 @@ test('camera CRUD and recordings listing', async () => {
   const del = await fetch(`${base}/api/cameras/${cam.id}?deleteRecordings=1`, { method: 'DELETE', headers: h });
   assert.strictEqual(del.status, 200);
   assert.ok(!fs.existsSync(path.join(cfg.recordingsDir, cam.id)));
+});
+
+test('add a DVR creates a camera per channel; probe uses saved password', async () => {
+  const cookie = (await login()).headers.get('set-cookie').split(';')[0];
+  const h = { cookie, 'Content-Type': 'application/json' };
+  const r = await fetch(`${base}/api/dvr`, { method: 'POST', headers: h, body: JSON.stringify({
+    name: 'Shop DVR', brand: 'dahua', host: '10.0.0.20', username: 'admin', password: 'dvrpw', channels: 3 }) });
+  assert.strictEqual(r.status, 201);
+  const cams = await r.json();
+  assert.deepStrictEqual(cams.map((c) => c.id), ['shop-dvr-ch-1', 'shop-dvr-ch-2', 'shop-dvr-ch-3']);
+  assert.ok(cams.every((c) => c.group === 'Shop DVR' && c.hasPassword && c.password === undefined));
+
+  const bad = await fetch(`${base}/api/dvr`, { method: 'POST', headers: h, body: JSON.stringify({ name: 'x', brand: 'dahua', host: '', channels: 2 }) });
+  assert.strictEqual(bad.status, 400);
+
+  // Testing an existing camera with a blank password uses the stored one
+  const p = await (await fetch(`${base}/api/probe`, { method: 'POST', headers: h, body: JSON.stringify({
+    id: 'shop-dvr-ch-2', url: cams[1].url, username: 'admin', password: '' }) })).json();
+  assert.strictEqual(p.ok, true);
+  assert.strictEqual(probed.at(-1).password, 'dvrpw');
+
+  // Testing a DVR before adding it probes its first channel
+  await fetch(`${base}/api/probe`, { method: 'POST', headers: h, body: JSON.stringify({
+    dvr: true, name: 'New', brand: 'hikvision', host: '10.0.0.30', channels: 8 }) });
+  assert.strictEqual(probed.at(-1).url, 'rtsp://10.0.0.30:554/Streaming/Channels/101');
 });

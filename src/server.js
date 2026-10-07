@@ -4,7 +4,9 @@ const crypto = require('crypto');
 const express = require('express');
 
 const cfg = require('./config');
-const { CameraStore, toPublic, ID_RE } = require('./cameras');
+const { CameraStore, toPublic, validate, ID_RE } = require('./cameras');
+const dvr = require('./dvr');
+const { probe: defaultProbe } = require('./probe');
 const { RecorderManager } = require('./recorder');
 const retention = require('./retention');
 const { createAuth } = require('./auth');
@@ -20,7 +22,7 @@ function loadSecret() {
   return secret;
 }
 
-function createApp({ store, recorder, auth }) {
+function createApp({ store, recorder, auth, probe = defaultProbe }) {
   const app = express();
   app.disable('x-powered-by');
   app.set('trust proxy', process.env.TRUST_PROXY === '1' ? 1 : false);
@@ -65,6 +67,44 @@ function createApp({ store, recorder, auth }) {
     if (r.errors) return res.status(400).json({ error: r.errors.join('; ') });
     await recorder.sync(store.list());
     res.status(201).json(withStatus(r.camera));
+  });
+
+  // Add every channel of a DVR/NVR as separate cameras in one go.
+  priv.get('/api/dvr/brands', (req, res) => {
+    res.json(Object.entries(dvr.BRANDS).map(([id, b]) => ({ id, label: b.label, main: b.main, sub: b.sub })));
+  });
+
+  priv.post('/api/dvr', async (req, res) => {
+    const plan = dvr.planDvr(req.body || {});
+    if (plan.errors) return res.status(400).json({ error: plan.errors.join('; ') });
+    const created = [];
+    for (const c of plan.cameras) {
+      const r = store.add(c);
+      if (r.errors) return res.status(400).json({ error: r.errors.join('; ') });
+      created.push(r.camera);
+    }
+    await recorder.sync(store.list());
+    res.status(201).json(created.map(withStatus));
+  });
+
+  // Test a stream before saving it. With dvr:true, tests the DVR's first channel.
+  priv.post('/api/probe', async (req, res) => {
+    const body = req.body || {};
+    let cam;
+    if (body.dvr) {
+      const plan = dvr.planDvr({ ...body, channels: 1 });
+      if (plan.errors) return res.status(400).json({ error: plan.errors.join('; ') });
+      [cam] = plan.cameras;
+    } else {
+      const { value, errors } = validate({ name: 'probe', url: body.url, username: body.username, password: body.password });
+      if (errors.length) return res.status(400).json({ error: errors.join('; ') });
+      cam = value;
+      // Editing a camera with the password field left blank: use the saved one.
+      const saved = body.id && ID_RE.test(body.id) && store.get(body.id);
+      if (saved && !cam.password) cam.password = saved.password;
+    }
+    const result = await probe(cam, { ffprobePath: cfg.ffprobePath });
+    res.json({ ...result, url: cam.url });
   });
 
   priv.put('/api/cameras/:id', async (req, res) => {

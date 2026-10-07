@@ -12,6 +12,7 @@ module.exports = {
   liveDir: path.join(dataDir, 'live'),
   camerasFile: path.join(dataDir, 'cameras.json'),
   ffmpegPath: process.env.FFMPEG_PATH || 'ffmpeg',
+  ffprobePath: process.env.FFPROBE_PATH || 'ffprobe',
   adminUser: process.env.ADMIN_USER || 'admin',
   adminPassword: process.env.ADMIN_PASSWORD || '',
   sessionSecret: process.env.SESSION_SECRET || '',
